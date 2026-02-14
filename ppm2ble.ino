@@ -19,49 +19,33 @@ bool deviceConnected = false;
 /* ================= HID Descriptor ================= */
 
 const uint8_t hidReportDescriptor[] = {
-  0x05, 0x01,        // Usage Page (Generic Desktop)
-  0x09, 0x05,        // Usage (Game Pad)
-  0xA1, 0x01,        // Collection (Application)
-  0x85, 0x01,        // Report ID (1)
 
-  // ===== Sticks Analógicos (4 eixos) =====
-  0x09, 0x30,        // Usage (X)
-  0x09, 0x31,        // Usage (Y)
-  0x09, 0x33,        // Usage (Rx)
-  0x09, 0x34,        // Usage (Ry)
-  0x15, 0x81,        // Logical Minimum (-127)
-  0x25, 0x7F,        // Logical Maximum (127)
-  0x75, 0x08,        // Report Size (8 bits)
-  0x95, 0x04,        // Report Count (4 axes)
-  0x81, 0x02,        // Input (Data,Var,Abs)
+  0x05, 0x01,        // Generic Desktop
+  0x09, 0x04,        // Joystick
+  0xA1, 0x01,        // Application
 
-  // ===== Botões (5) =====
-  0x05, 0x09,        // Usage Page (Buttons)
-  0x19, 0x01,        // Usage Minimum (Button 1)
-  0x29, 0x05,        // Usage Maximum (Button 5)
-  0x15, 0x00,        // Logical Minimum (0)
-  0x25, 0x01,        // Logical Maximum (1)
-  0x75, 0x01,        // Report Size (1 bit)
-  0x95, 0x05,        // Report Count (5 buttons)
-  0x81, 0x02,        // Input (Data,Var,Abs)
+    0x85, 0x01,      // Report ID
 
-  // ===== Padding (completar 1 byte) =====
-  0x75, 0x03,        // Report Size (3 bits)
-  0x95, 0x01,        // Report Count (1)
-  0x81, 0x03,        // Input (Const,Var,Abs)
+    0x09, 0x30,      // X
+    0x15, 0x81,      // Logical Min (-127)
+    0x25, 0x7F,      // Logical Max (127)
 
-  0xC0               // End Collection
+    0x75, 0x08,      // 8 bits
+    0x95, 0x01,      // 1 eixo
+    0x81, 0x02,      // Input
+
+  0xC0
 };
 
 
 struct GamepadReport {
   uint8_t reportId;
 
-  int8_t lx;   // Stick esquerdo X  (Usage X)
-  int8_t ly;   // Stick esquerdo Y  (Usage Y)
+  // int8_t lx;   // Stick esquerdo X  (Usage X)
+  // int8_t ly;   // Stick esquerdo Y  (Usage Y)
 
   int8_t rx;   // Stick direito X   (Usage Rx)
-  int8_t ry;   // Stick direito Y   (Usage Ry)
+  // int8_t ry;   // Stick direito Y   (Usage Ry)
 
   uint8_t buttons; // bits 0..4 usados
 } __attribute__((packed));
@@ -171,22 +155,22 @@ void loop() {
     report.reportId = 1;
 
     report.rx = ppmToAxis(ppmArray[1]);
-    report.ry = ppmToAxis(ppmArray[2]);
-    report.lx = ppmToAxis(ppmArray[4]);
-    report.ly = ppmToAxis(ppmArray[3]);
+    // report.ry = ppmToAxis(ppmArray[2]);
+    // report.lx = ppmToAxis(ppmArray[4]);
+    // report.ly = ppmToAxis(ppmArray[3]);
 
-    report.buttons = 0;
+    // report.buttons = 0;
 
-    if (ppmToButton(ppmArray[5]))     report.buttons |= (1 << 0);
-    if (ppmToButton(ppmArray[6]))     report.buttons |= (1 << 1);
-    if (ppmToButtonMid(ppmArray[7]))  report.buttons |= (1 << 2);
-    if (ppmToButtonHi(ppmArray[7]))   report.buttons |= (1 << 3);
-    if (ppmToButton(ppmArray[8]))     report.buttons |= (1 << 4);
+    // if (ppmToButton(ppmArray[5]))     report.buttons |= (1 << 0);
+    // if (ppmToButton(ppmArray[6]))     report.buttons |= (1 << 1);
+    // if (ppmToButtonMid(ppmArray[7]))  report.buttons |= (1 << 2);
+    // if (ppmToButtonHi(ppmArray[7]))   report.buttons |= (1 << 3);
+    // if (ppmToButton(ppmArray[8]))     report.buttons |= (1 << 4);
 
     inputGamepad->setValue((uint8_t*)&report, sizeof(report));
     inputGamepad->notify();
 
-    Serial.printf("LX=%d\tLY=%d\tRX=%d\tRY=%d\tBTN=0x%02X\n", report.lx, report.ly, report.rx, report.ry, report.buttons);
+    //Serial.printf("LX=%d\tLY=%d\tRX=%d\tRY=%d\tBTN=0x%02X\n", report.lx, report.ly, report.rx, report.ry, report.buttons);
 
     delay(20); // ~50Hz
   }
