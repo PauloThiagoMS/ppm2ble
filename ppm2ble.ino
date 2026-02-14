@@ -17,26 +17,21 @@ BLEServer *server;
 bool deviceConnected = false;
 
 /* ================= HID Descriptor ================= */
-
 const uint8_t hidReportDescriptor[] = {
+  0x05, 0x01,        // Usage Page (Generic Desktop)
+  0x09, 0x04,        // Usage (Joystick)
+  0xA1, 0x01,        // Collection (Application)
+  0x85, 0x01,        // Report ID
 
-  0x05, 0x01,        // Generic Desktop
-  0x09, 0x04,        // Joystick
-  0xA1, 0x01,        // Application
-
-    0x85, 0x01,      // Report ID
-
-    0x09, 0x30,      // X
-    0x15, 0x81,      // Logical Min (-127)
-    0x25, 0x7F,      // Logical Max (127)
-
-    0x75, 0x08,      // 8 bits
-    0x95, 0x01,      // 1 eixo
-    0x81, 0x02,      // Input
+  0x09, 0x30,        // Usage (X)
+  0x15, 0x81,        // Logical Min (-127)
+  0x25, 0x7F,        // Logical Max (127)
+  0x75, 0x08,        // Report Size (8)
+  0x95, 0x01,        // Report Count (1)
+  0x81, 0x02,        // Input (Data,Var,Abs)
 
   0xC0
 };
-
 
 struct GamepadReport {
   uint8_t reportId;
@@ -170,7 +165,8 @@ void loop() {
     inputGamepad->setValue((uint8_t*)&report, sizeof(report));
     inputGamepad->notify();
 
-    //Serial.printf("LX=%d\tLY=%d\tRX=%d\tRY=%d\tBTN=0x%02X\n", report.lx, report.ly, report.rx, report.ry, report.buttons);
+    // Serial.printf("LX=%d\tLY=%d\tRX=%d\tRY=%d\tBTN=0x%02X\n", report.lx, report.ly, report.rx, report.ry, report.buttons);
+    Serial.printf("RX=%d\n", report.rx);
 
     delay(20); // ~50Hz
   }
