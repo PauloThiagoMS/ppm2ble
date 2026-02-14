@@ -21,7 +21,9 @@ const uint8_t hidReportDescriptor[] = {
   0x05, 0x01,        // Usage Page (Generic Desktop)
   0x09, 0x04,        // Usage (Joystick)
   0xA1, 0x01,        // Collection (Application)
-  0x85, 0x01,        // Report ID
+  0x85, 0x01,        // Report ID (1)
+
+  0xA1, 0x00,        // Collection (Physical)
 
   0x09, 0x30,        // Usage (X)
   0x15, 0x81,        // Logical Min (-127)
@@ -30,7 +32,8 @@ const uint8_t hidReportDescriptor[] = {
   0x95, 0x01,        // Report Count (1)
   0x81, 0x02,        // Input (Data,Var,Abs)
 
-  0xC0
+  0xC0,              // End Physical Collection
+  0xC0               // End Application Collection
 };
 
 struct GamepadReport {
