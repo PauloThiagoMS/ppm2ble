@@ -16,36 +16,45 @@ BLECharacteristic *inputGamepad;
 BLEServer *server;
 bool deviceConnected = false;
 
-/* ================= HID Descriptor ================= */
 const uint8_t hidReportDescriptor[] = {
-  0x05, 0x01,        // Usage Page (Generic Desktop)
-  0x09, 0x04,        // Usage (Joystick)
-  0xA1, 0x01,        // Collection (Application)
-  0x85, 0x01,        // Report ID (1)
-
-  0xA1, 0x00,        // Collection (Physical)
-
-  0x09, 0x30,        // Usage (X)
-  0x15, 0x81,        // Logical Min (-127)
-  0x25, 0x7F,        // Logical Max (127)
-  0x75, 0x08,        // Report Size (8)
-  0x95, 0x01,        // Report Count (1)
-  0x81, 0x02,        // Input (Data,Var,Abs)
-
-  0xC0,              // End Physical Collection
-  0xC0               // End Application Collection
+    0x05, 0x01,    // UsagePage(Generic Desktop[0x0001])
+    0x09, 0x04,    // UsageId(Joystick[0x0004])
+    0xA1, 0x01,    // Collection(Application)
+    0x85, 0x01,    //     ReportId(1)
+    0x09, 0x01,    //     UsageId(Pointer[0x0001])
+    0xA1, 0x00,    //     Collection(Physical)
+    0x09, 0x30,    //         UsageId(X[0x0030])
+    0x09, 0x31,    //         UsageId(Y[0x0031])
+    0x15, 0x80,    //         LogicalMinimum(-128)
+    0x25, 0x7F,    //         LogicalMaximum(127)
+    0x95, 0x02,    //         ReportCount(2)
+    0x75, 0x08,    //         ReportSize(8)
+    0x81, 0x02,    //         Input(Data, Variable, Absolute, NoWrap, Linear, PreferredState, NoNullPosition, BitField)
+    0xC0,          //     EndCollection()
+    0x05, 0x09,    //     UsagePage(Button[0x0009])
+    0x19, 0x01,    //     UsageIdMin(Button 1[0x0001])
+    0x29, 0x08,    //     UsageIdMax(Button 8[0x0008])
+    0x15, 0x00,    //     LogicalMinimum(0)
+    0x25, 0x01,    //     LogicalMaximum(1)
+    0x95, 0x01,    //     ReportCount(1)
+    0x75, 0x08,    //     ReportSize(8)
+    0x81, 0x02,    //     Input(Data, Variable, Absolute, NoWrap, Linear, PreferredState, NoNullPosition, BitField)
+    0x95, 0x01,    //     ReportCount(1)
+    0x75, 0x03,    //     ReportSize(3)
+    0x81, 0x03,    //     Input(Constant, Variable, Absolute, NoWrap, Linear, PreferredState, NoNullPosition, BitField)
+    0xC0,          // EndCollection()
 };
 
-struct GamepadReport {
-  uint8_t reportId;
 
-  // int8_t lx;   // Stick esquerdo X  (Usage X)
-  // int8_t ly;   // Stick esquerdo Y  (Usage Y)
+struct GamepadReport
+{
+    //uint8_t reportId;   // 0x85
 
-  int8_t rx;   // Stick direito X   (Usage Rx)
-  // int8_t ry;   // Stick direito Y   (Usage Ry)
+    int8_t x;           // Usage X
+    int8_t y;           // Usage Y
 
-  uint8_t buttons; // bits 0..4 usados
+    uint8_t buttons;    // 5 bits usados + 3 padding
+
 } __attribute__((packed));
 
 /* ================= Callbacks ================= */
@@ -65,13 +74,13 @@ class ServerCallbacks : public BLEServerCallbacks {
 
 /* ================= Helpers ================= */
 
-// Converte 1000–2000us → -127 a +127
+// Converte 1000–2000us → -32768 a 32767
 int8_t ppmToAxis(int value)
 {
   if (value < 1000) value = 1000;
   if (value > 2000) value = 2000;
 
-  return (int8_t) map(value, 1000, 2000, -127, 127);
+  return (int8_t) map(value, 1000, 2000, -128, 127);
 }
 
 // Canal → botão digital
@@ -150,26 +159,27 @@ void loop() {
   if (deviceConnected && ppmArray != nullptr) {
 
     GamepadReport report;
-    report.reportId = 1;
+    //report.reportId = 1;
 
-    report.rx = ppmToAxis(ppmArray[1]);
-    // report.ry = ppmToAxis(ppmArray[2]);
-    // report.lx = ppmToAxis(ppmArray[4]);
-    // report.ly = ppmToAxis(ppmArray[3]);
+    report.x = ppmToAxis(ppmArray[1]);
+    report.y = ppmToAxis(ppmArray[2]);
+    //report.rx = ppmToAxis(ppmArray[4]);
+    //report.ry = ppmToAxis(ppmArray[3]);
 
-    // report.buttons = 0;
+    report.buttons = 0;
 
-    // if (ppmToButton(ppmArray[5]))     report.buttons |= (1 << 0);
-    // if (ppmToButton(ppmArray[6]))     report.buttons |= (1 << 1);
-    // if (ppmToButtonMid(ppmArray[7]))  report.buttons |= (1 << 2);
-    // if (ppmToButtonHi(ppmArray[7]))   report.buttons |= (1 << 3);
-    // if (ppmToButton(ppmArray[8]))     report.buttons |= (1 << 4);
+    if (ppmToButton(ppmArray[5]))     report.buttons |= (1 << 0);
+    if (ppmToButton(ppmArray[6]))     report.buttons |= (1 << 1);
+    if (ppmToButtonMid(ppmArray[7]))  report.buttons |= (1 << 2);
+    if (ppmToButtonHi(ppmArray[7]))   report.buttons |= (1 << 3);
+    if (ppmToButton(ppmArray[8]))     report.buttons |= (1 << 4);
 
     inputGamepad->setValue((uint8_t*)&report, sizeof(report));
     inputGamepad->notify();
 
-    // Serial.printf("LX=%d\tLY=%d\tRX=%d\tRY=%d\tBTN=0x%02X\n", report.lx, report.ly, report.rx, report.ry, report.buttons);
-    Serial.printf("RX=%d\n", report.rx);
+//    Serial.printf("LX=%d\tLY=%d\tRX=%d\tRY=%d\tBTN=0x%02X\n", report.x, report.y, report.rx, report.ry, report.buttons);
+    Serial.printf("X=%d\tY=%d\tBTN=0x%02X\n", report.x, report.y, report.buttons);
+
 
     delay(20); // ~50Hz
   }
