@@ -1,15 +1,55 @@
+// ================ CFG ===================//
+
+// PPM
+#define PPM_PIN 2
+
+// COMM
+//#define SERIAL_DEBUG
+
+// BLE
+#define BT_NAME "PPM2BT-GAMEPAD"
+#define BT_MANUFACTURE "ESP32"
+
+// ================ PPM ===================//
+
 #include <ESP32_ppm.h>
+
+ppmReader myPPM_RX;
+int* ppmArray;
+
+int8_t ppmToAxis(int value, bool invert) {
+  if (value < 1000) value = 1000;
+  if (value > 2000) value = 2000;
+  return (int8_t) map(value, 1000, 2000, invert ? 127 : -128, invert ? -128 : 127);
+}
+
+bool ppmToButton(int value) { return value > 1500; }
+bool ppmToButtonMid(int value) { return (value > 1333 && value <= 1666); }
+bool ppmToButtonHi(int value) { return value > 1666; }
+
+int ppm_setup(void){
+  myPPM_RX.RX_minimum_space = 3000;
+  ppmArray = myPPM_RX.begin(PPM_PIN);
+  if (ppmArray != nullptr) {
+    myPPM_RX.start();
+#ifdef SERIAL_DEBUG
+    Serial.println("PPM OK");
+#endif
+    return 0;
+  }
+#ifdef SERIAL_DEBUG
+  Serial.println("PPM NOK");
+#endif
+  return -1;
+}
+
+// ================ BLE ===================//
 
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include <BLEHIDDevice.h>
 #include <BLESecurity.h>
-
-#define PPM_PIN 2
-
-ppmReader myPPM_RX;
-int* ppmArray;
 
 BLEHIDDevice *hid;
 BLECharacteristic *inputGamepad;
@@ -21,8 +61,6 @@ const uint8_t hidReportDescriptor[] = {
     0x09, 0x05,        // Usage (Game Pad)
     0xA1, 0x01,        // Collection (Application)
     0x85, 0x01,        //   Report ID (1)
-
-    // --- 4 Eixos (X, Y, Z, Rz) -> 4 Bytes ---
     0x05, 0x01,        //   Usage Page (Generic Desktop)
     0x09, 0x30,        //   Usage (X)
     0x09, 0x31,        //   Usage (Y)
@@ -33,8 +71,6 @@ const uint8_t hidReportDescriptor[] = {
     0x75, 0x08,        //   Report Size (8 bits)
     0x95, 0x04,        //   Report Count (4)
     0x81, 0x02,        //   Input (Data, Variable, Absolute)
-
-    // --- 8 Botões -> 1 Byte ---
     0x05, 0x09,        //   Usage Page (Button)
     0x19, 0x01,        //   Usage Minimum (Button 1)
     0x29, 0x08,        //   Usage Maximum (Button 8)
@@ -47,94 +83,45 @@ const uint8_t hidReportDescriptor[] = {
     0xC0               // End Collection
 };
 
-
-struct GamepadReport
-{
-    int8_t x;           // Usage X
-    int8_t y;           // Usage Y
-    int8_t z;           // Usage z
-    int8_t rz;           // Usage Rz
-
-    uint8_t buttons;    // 5 bits usados + 3 padding
-
+struct GamepadReport {
+    int8_t x;   
+    int8_t y;   
+    int8_t z;   
+    int8_t rz;  
+    uint8_t buttons; 
 } __attribute__((packed));
-
-/* ================= Callbacks ================= */
 
 class ServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer *pServer) {
     deviceConnected = true;
+#ifdef SERIAL_DEBUG
     Serial.println("BLE conectado");
+#endif
   }
 
   void onDisconnect(BLEServer *pServer) {
     deviceConnected = false;
-    Serial.println("BLE desconectado");
+#ifdef SERIAL_DEBUG
+    Serial.println("BLE desconectado. Reiniciando anúncio...");
+#endif
     BLEDevice::startAdvertising();
   }
 };
 
-/* ================= Helpers ================= */
-
-// Converte 1000–2000us → -128 a 127
-int8_t ppmToAxis(int value, bool invert)
+int ble_setup(void)
 {
-  if (value < 1000) value = 1000;
-  if (value > 2000) value = 2000;
-  if (invert)
-  {
-    return (int8_t) map(value, 1000, 2000, 127, -128); 
-  }
-  else
-  {
-    return (int8_t) map(value, 1000, 2000, -128, 127);
-  }
-}
+  BLEDevice::init(BT_NAME); 
 
-// Canal → botão digital
-bool ppmToButton(int value)
-{
-  return value > 1500;
-}
-
-bool ppmToButtonMid(int value)
-{
-  return (value > 1333 && value <= 1666);
-}
-
-bool ppmToButtonHi(int value)
-{
-  return value > 1666;
-}
-
-/* ================= Setup ================= */
-
-void setup() {
-  Serial.begin(115200);
-  Serial.println("Start");
-
-  /* ---- PPM ---- */
-
-  myPPM_RX.RX_minimum_space = 3000;   // CRÍTICO para C3
-  ppmArray = myPPM_RX.begin(PPM_PIN);
-
-  if (ppmArray != nullptr) {
-    myPPM_RX.start();
-    Serial.println("PPM iniciado");
-  } else {
-    Serial.println("Erro PPM");
-  }
-
-  /* ---- BLE ---- */
-
-  BLEDevice::init("ESP32-Stick-V3");
+  BLESecurity *security = new BLESecurity();
+  security->setAuthenticationMode(ESP_LE_AUTH_BOND);
+  security->setCapability(ESP_IO_CAP_NONE);
+  security->setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
 
   server = BLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks());
 
   hid = new BLEHIDDevice(server);
-
-  hid->manufacturer()->setValue("ESP32");
+  hid->manufacturer()->setValue(BT_MANUFACTURE);
   hid->pnp(0x02, 0xe502, 0xa111, 0x0110);
   hid->hidInfo(0x00, 0x01);
 
@@ -145,34 +132,43 @@ void setup() {
   hid->startServices();
 
   BLEAdvertising *advertising = BLEDevice::getAdvertising();
-
   advertising->setAppearance(0x03C4);
   advertising->addServiceUUID(hid->hidService()->getUUID());
-
-  advertising->setScanResponse(true);
-
-  // ESSENCIAL para Windows
+  advertising->addServiceUUID(hid->batteryService()->getUUID());
+  advertising->setScanResponse(true);  
   advertising->setMinPreferred(0x06);
   advertising->setMaxPreferred(0x12);
 
   BLEDevice::startAdvertising();
-
-  Serial.println("BLE pronto");
+  
+#ifdef SERIAL_DEBUG
+  Serial.println("BLE pronto para parear!");
+#endif
+  return 0;
 }
 
-/* ================= Loop ================= */
+// ================ COMM ===================//
+
+void setup() {
+#ifdef SERIAL_DEBUG
+  Serial.begin(115200);
+  Serial.println("Iniciando ESP32 Joystick...");
+#endif
+  ppm_setup();
+  ble_setup();
+}
 
 void loop() {
-
   if (deviceConnected && ppmArray != nullptr) {
-
     GamepadReport report;
 
-    report.z = ppmToAxis(ppmArray[1], false);
+    // Mapeamento dos eixos (ajuste os índices de acordo com seu rádio)
+    report.z  = ppmToAxis(ppmArray[1], false);
     report.rz = ppmToAxis(ppmArray[2], true);
-    report.x = ppmToAxis(ppmArray[4], false);
-    report.y = ppmToAxis(ppmArray[3], true);
+    report.x  = ppmToAxis(ppmArray[4], false);
+    report.y  = ppmToAxis(ppmArray[3], true);
 
+    // Mapeamento dos botões (Bits 0 a 7)
     uint8_t btnState = 0;
     if (ppmToButton(ppmArray[5]))    btnState |= (1 << 0); // Botão 1
     if (ppmToButton(ppmArray[6]))    btnState |= (1 << 1); // Botão 2
@@ -180,13 +176,14 @@ void loop() {
     if (ppmToButtonHi(ppmArray[7]))  btnState |= (1 << 3); // Botão 4
     if (ppmToButton(ppmArray[8]))    btnState |= (1 << 4); // Botão 5
     
-    report.buttons = btnState; // Os bits 5, 6 e 7 ficarão como 0 (soltos)
+    report.buttons = btnState;
 
     inputGamepad->setValue((uint8_t*)&report, sizeof(report));
     inputGamepad->notify();
 
+#ifdef SERIAL_DEBUG
     Serial.printf("X=%d\tY=%d\tZ=%d\tRZ=%d\tBTN=0x%02X\n", report.x, report.y, report.z, report.rz, report.buttons);
-
-    delay(15); // ~60Hz
+#endif
+    delay(10);
   }
 }
