@@ -17,34 +17,34 @@ BLEServer *server;
 bool deviceConnected = false;
 
 const uint8_t hidReportDescriptor[] = {
-    0x05, 0x01,    // UsagePage(Generic Desktop[0x0001])
-    0x09, 0x04,    // UsageId(Joystick[0x0004])
-    0xA1, 0x01,    // Collection(Application)
-    0x85, 0x01,    //     ReportId(1)
-    0x09, 0x01,    //     UsageId(Pointer[0x0001])
-    0xA1, 0x00,    //     Collection(Physical)
-    0x09, 0x30,    //         UsageId(X[0x0030])
-    0x09, 0x31,    //         UsageId(Y[0x0031])
-    0x09, 0x32,    //         UsageId(Z[0x0032])
-    0x09, 0x33,    //         UsageId(Rz[0x0033])
-    0x15, 0x80,    //         LogicalMinimum(-128)
-    0x25, 0x7F,    //         LogicalMaximum(127)
-    0x95, 0x04,    //         ReportCount(4)
-    0x75, 0x08,    //         ReportSize(8)
-    0x81, 0x02,    //         Input(Data, Variable, Absolute, NoWrap, Linear, PreferredState, NoNullPosition, BitField)
-    0xC0,          //     EndCollection()
-    0x05, 0x09,    //     UsagePage(Button[0x0009])
-    0x19, 0x01,    //     UsageIdMin(Button 1[0x0001])
-    0x29, 0x05,    //     UsageIdMax(Button 5[0x0005])
-    0x15, 0x00,    //     LogicalMinimum(0)
-    0x25, 0x01,    //     LogicalMaximum(1)
-    0x95, 0x05,    //     ReportCount(5)
-    0x75, 0x01,    //     ReportSize(1)
-    0x81, 0x02,    //     Input(Data, Variable, Absolute, NoWrap, Linear, PreferredState, NoNullPosition, BitField)
-    0x95, 0x01,    //     ReportCount(1)
-    0x75, 0x03,    //     ReportSize(3)
-    0x81, 0x03,    //     Input(Constant, Variable, Absolute, NoWrap, Linear, PreferredState, NoNullPosition, BitField)
-    0xC0,          // EndCollection()
+    0x05, 0x01,        // Usage Page (Generic Desktop)
+    0x09, 0x05,        // Usage (Game Pad)
+    0xA1, 0x01,        // Collection (Application)
+    0x85, 0x01,        //   Report ID (1)
+
+    // --- 4 Eixos (X, Y, Z, Rz) -> 4 Bytes ---
+    0x05, 0x01,        //   Usage Page (Generic Desktop)
+    0x09, 0x30,        //   Usage (X)
+    0x09, 0x31,        //   Usage (Y)
+    0x09, 0x32,        //   Usage (Z)
+    0x09, 0x35,        //   Usage (Rz)
+    0x15, 0x80,        //   Logical Minimum (-128)
+    0x25, 0x7F,        //   Logical Maximum (127)
+    0x75, 0x08,        //   Report Size (8 bits)
+    0x95, 0x04,        //   Report Count (4)
+    0x81, 0x02,        //   Input (Data, Variable, Absolute)
+
+    // --- 8 Botões -> 1 Byte ---
+    0x05, 0x09,        //   Usage Page (Button)
+    0x19, 0x01,        //   Usage Minimum (Button 1)
+    0x29, 0x08,        //   Usage Maximum (Button 8)
+    0x15, 0x00,        //   Logical Minimum (0)
+    0x25, 0x01,        //   Logical Maximum (1)
+    0x75, 0x01,        //   Report Size (1 bit)
+    0x95, 0x08,        //   Report Count (8)
+    0x81, 0x02,        //   Input (Data, Variable, Absolute)
+
+    0xC0               // End Collection
 };
 
 
@@ -127,7 +127,7 @@ void setup() {
 
   /* ---- BLE ---- */
 
-  BLEDevice::init("PPM-BLE-Gamepad");
+  BLEDevice::init("ESP32-Stick-V3");
 
   server = BLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks());
@@ -168,24 +168,25 @@ void loop() {
 
     GamepadReport report;
 
-    report.x = ppmToAxis(ppmArray[1], false);
-    report.y = ppmToAxis(ppmArray[2], true);
-    report.z = ppmToAxis(ppmArray[4], false);
-    report.rz = ppmToAxis(ppmArray[3], false);
+    report.z = ppmToAxis(ppmArray[1], false);
+    report.rz = ppmToAxis(ppmArray[2], true);
+    report.x = ppmToAxis(ppmArray[4], false);
+    report.y = ppmToAxis(ppmArray[3], true);
 
-    report.buttons = 0;
-
-    if (ppmToButton(ppmArray[5]))     report.buttons |= (1 << 0);
-    if (ppmToButton(ppmArray[6]))     report.buttons |= (1 << 1);
-    if (ppmToButtonMid(ppmArray[7]))  report.buttons |= (1 << 2);
-    if (ppmToButtonHi(ppmArray[7]))   report.buttons |= (1 << 3);
-    if (ppmToButton(ppmArray[8]))     report.buttons |= (1 << 4);
+    uint8_t btnState = 0;
+    if (ppmToButton(ppmArray[5]))    btnState |= (1 << 0); // Botão 1
+    if (ppmToButton(ppmArray[6]))    btnState |= (1 << 1); // Botão 2
+    if (ppmToButtonMid(ppmArray[7])) btnState |= (1 << 2); // Botão 3
+    if (ppmToButtonHi(ppmArray[7]))  btnState |= (1 << 3); // Botão 4
+    if (ppmToButton(ppmArray[8]))    btnState |= (1 << 4); // Botão 5
+    
+    report.buttons = btnState; // Os bits 5, 6 e 7 ficarão como 0 (soltos)
 
     inputGamepad->setValue((uint8_t*)&report, sizeof(report));
     inputGamepad->notify();
 
     Serial.printf("X=%d\tY=%d\tZ=%d\tRZ=%d\tBTN=0x%02X\n", report.x, report.y, report.z, report.rz, report.buttons);
 
-    delay(20); // ~50Hz
+    delay(15); // ~60Hz
   }
 }
