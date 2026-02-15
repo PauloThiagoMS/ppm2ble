@@ -12,7 +12,7 @@
 
 // ================ PPM ===================//
 
-#include <ESP32_ppm.h>
+#include <ESP32_ppm.h> // ESP32Pppm by fanfanlatulipe26 v1.1.0
 
 ppmReader myPPM_RX;
 int* ppmArray;
