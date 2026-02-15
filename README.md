@@ -17,8 +17,6 @@ Utilizando o **ESP32**, você obtém um adaptador ultra compacto, ideal para ser
 
 ---
 
----
-
 ## 🛠️ Requisitos de Hardware
 
 * **Microcontrolador:** ESP32.
@@ -26,7 +24,7 @@ Utilizando o **ESP32**, você obtém um adaptador ultra compacto, ideal para ser
 * **Conexões:**
     * **VCC:** 3.3V ou 5V (O pino VCC do ESP32 aceita 5V).
     * **GND:** Comum.
-    - **PPM Signal:** Conectado ao **GPIO 2** (Pino D2).
+    * **PPM Signal:** Conectado ao **GPIO 2** (Pino D2).
 
 ---
 
