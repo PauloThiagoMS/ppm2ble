@@ -9,15 +9,11 @@ Aqui você encontra todos os esquemas e referências visuais para a montagem do 
 | :---: | :---: |
 | <img src="./FLYSKY-Trainer+Esp32-C3_super_mini.png" width="400"> | <img src="./FLYSKY-Trainer+Esp32-DOITv1.png" width="400"> |
 
-<!-- ### 📸 Montagem Real
-| Interno do Rádio | Modificação de LED (Remoção) |
+### 📸 Montagem Real
+| FS-I6-internal+Esp32-C3_super_mini + Modificação de LED (Remoção) ||
 | :---: | :---: |
-| <img src="./foto_montagem.jpg" width="400"> | <img src="./led_mod.jpg" width="400"> |
+| <img src="./FS-I6-internal+Esp32-C3_super_mini.jpg" width="400">|
 
-### 🖥️ Software e Calibração
-| Joy.cpl (Windows) | Gamepad Tester (Android) |
-| :---: | :---: |
-| <img src="./windows_joy.png" width="400"> | <img src="./android_app.png" width="400"> | -->
 
 ---
 [⬅️ Voltar para o menu principal](../README.md)
