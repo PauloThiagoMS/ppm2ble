@@ -4,7 +4,10 @@
 #define PPM_PIN 2
 
 // COMM
-//#define SERIAL_DEBUG
+#define SERIAL_DEBUG
+unsigned long lastConnectionCheck = 0;
+const unsigned long SHUTDOWN_TIMEOUT = 60000; // 60 segundos em milissegundos
+
 
 // BLE
 #define BT_NAME "PPM2BT-GAMEPAD"
@@ -160,6 +163,8 @@ void setup() {
 
 void loop() {
   if (deviceConnected && ppmArray != nullptr) {
+    lastConnectionCheck = millis(); // Reseta o cronômetro enquanto estiver conectado
+    
     GamepadReport report;
 
     // Mapeamento dos eixos (ajuste os índices de acordo com seu rádio)
@@ -185,5 +190,16 @@ void loop() {
     Serial.printf("X=%d\tY=%d\tZ=%d\tRZ=%d\tBTN=0x%02X\n", report.x, report.y, report.z, report.rz, report.buttons);
 #endif
     delay(10);
+  }
+  else
+  {
+    if (millis() - lastConnectionCheck > SHUTDOWN_TIMEOUT) {
+#ifdef SERIAL_DEBUG
+      Serial.println("Inatividade detectada. Entrando em Deep Sleep...");
+      delay(100);
+#endif      
+      // Entra em Deep Sleep. 
+      esp_deep_sleep_start();
+    }
   }
 }

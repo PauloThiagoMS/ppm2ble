@@ -8,11 +8,14 @@ Utilizando o **ESP32**, você obtém um adaptador ultra compacto, ideal para ser
 
 ## 🚀 Funcionalidades
 
-* **Conectividade Sem Fio:** Transforma rádios em controladores modernos Bluetooth.
-* **Compatibilidade Multiplataforma:** Reconhecido nativamente por **Windows 10/11**, **Android** e **iOS**.
-* **Baixa Latência:** Taxa de atualização otimizada de **~100Hz (10ms)** para resposta imediata.
-* **Segurança BLE:** Implementa *Bonding* e criptografia para garantir pareamento estável no Windows.
-* **Gerenciamento de Canais:** Suporta 4 eixos analógicos e até 8 botões digitais.
+* **📡 Conectividade Sem Fio:** Transforma rádios em controladores modernos Bluetooth.
+* **📱 Compatibilidade Multiplataforma:** Reconhecido nativamente por **Windows 10/11**, **Android** e **iOS**.
+* **⚡ Baixa Latência:** Taxa de atualização otimizada de **~100Hz (10ms)** para resposta imediata.
+* **🔐 Segurança BLE:** Implementa *Bonding* e criptografia para garantir pareamento estável no Windows.
+* **🎮 Gerenciamento de Canais:** Suporta 4 eixos analógicos e até 8 botões digitais.
+* **🔋 Gerenciamento de Energia(Auto-Shutdown):** Se não detectar uma conexão Bluetooth ativa por mais de **60 segundos**, ele entrará em modo Deep Sleep(**5µA**)
+
+---
 
 ---
 
@@ -80,6 +83,24 @@ Se o dispositivo parear mas não responder no simulador:
 
 1. Pressione `Win + R` e digite `joy.cpl` para testar os eixos nativamente.
 2. Se houver erro de conexão, vá em **"Dispositivos e Impressoras"**, remova o **"PPM2BT-GAMEPAD"** e reinicie o Bluetooth do computador. O código utiliza `BLESecurity` para resolver falhas de autenticação.
+
+---
+
+## 💡 Recomendações Técnicas
+
+* **Estabilidade:** Adicione um capacitor de **100µF a 470µF** entre os pinos VCC e GND para filtrar ruídos e picos de corrente do rádio Bluetooth.
+* **Calibração:** Sempre calibre os sticks dentro do simulador ou através do comando `joy.cpl` no Windows para garantir a centralização perfeita dos eixos.
+* **Segurança:** O uso do pino **VCC** em vez do pino 3.3V é altamente recomendado ao usar 4 pilhas, para que o regulador de tensão proteja o chip contra sobretensão.
+* **Eficiência:** Remoção física (dessoldagem) dos LEDs integrados** na placa (especialmente o LED vermelho de Power).
+
+---
+
+## 📂 Galeria e Exemplos Visuais
+Para auxiliar na montagem e configuração, você encontrará imagens detalhadas na pasta 👉 **[Assets](./assets)**, incluindo:
+
+* **🖼️ Esquemas de Ligação:** Diagramas de fiação entre o Rádio Controle e o ESP32.
+* **📍 Guia de Pinagem:** Identificação dos pinos de energia e sinal.
+* **📸 Fotos da Montagem:** Exemplos de como o ESP32 foi acomodado dentro do rádio.
 
 ---
 
