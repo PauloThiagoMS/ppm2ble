@@ -4,7 +4,7 @@
 #define PPM_PIN 2
 
 // COMM
-#define SERIAL_DEBUG
+//#define SERIAL_DEBUG
 unsigned long lastConnectionCheck = 0;
 const unsigned long SHUTDOWN_TIMEOUT = 60000; // 60 segundos em milissegundos
 
@@ -87,11 +87,11 @@ const uint8_t hidReportDescriptor[] = {
 };
 
 struct GamepadReport {
-    int8_t x;   
-    int8_t y;   
-    int8_t z;   
-    int8_t rz;  
-    uint8_t buttons; 
+  int8_t x;
+  int8_t y;
+  int8_t z;
+  int8_t rz;
+  uint8_t buttons;
 } __attribute__((packed));
 
 class ServerCallbacks : public BLEServerCallbacks {
@@ -113,7 +113,7 @@ class ServerCallbacks : public BLEServerCallbacks {
 
 int ble_setup(void)
 {
-  BLEDevice::init(BT_NAME); 
+  BLEDevice::init(BT_NAME);
 
   BLESecurity *security = new BLESecurity();
   security->setAuthenticationMode(ESP_LE_AUTH_BOND);
@@ -138,12 +138,12 @@ int ble_setup(void)
   advertising->setAppearance(0x03C4);
   advertising->addServiceUUID(hid->hidService()->getUUID());
   advertising->addServiceUUID(hid->batteryService()->getUUID());
-  advertising->setScanResponse(true);  
+  advertising->setScanResponse(true);
   advertising->setMinPreferred(0x06);
   advertising->setMaxPreferred(0x12);
 
   BLEDevice::startAdvertising();
-  
+
 #ifdef SERIAL_DEBUG
   Serial.println("BLE pronto para parear!");
 #endif
@@ -164,42 +164,47 @@ void setup() {
 void loop() {
   if (deviceConnected && ppmArray != nullptr) {
     lastConnectionCheck = millis(); // Reseta o cronômetro enquanto estiver conectado
-    
-    GamepadReport report;
+    static uint32_t lastReport = 0;
 
-    // Mapeamento dos eixos (ajuste os índices de acordo com seu rádio)
-    report.z  = ppmToAxis(ppmArray[1], false);
-    report.rz = ppmToAxis(ppmArray[2], true);
-    report.x  = ppmToAxis(ppmArray[4], false);
-    report.y  = ppmToAxis(ppmArray[3], true);
+    if (millis() - lastReport >= 100)
+    {
+      lastReport = millis();
 
-    // Mapeamento dos botões (Bits 0 a 7)
-    uint8_t btnState = 0;
-    if (ppmToButton(ppmArray[5]))    btnState |= (1 << 0); // Botão 1
-    if (ppmToButton(ppmArray[6]))    btnState |= (1 << 1); // Botão 2
-    if (ppmToButtonMid(ppmArray[7])) btnState |= (1 << 2); // Botão 3
-    if (ppmToButtonHi(ppmArray[7]))  btnState |= (1 << 3); // Botão 4
-    if (ppmToButton(ppmArray[8]))    btnState |= (1 << 4); // Botão 5
-    
-    report.buttons = btnState;
+      GamepadReport report;
+      
+      // Mapeamento dos eixos (ajuste os índices de acordo com seu rádio)
+      report.z  = ppmToAxis(ppmArray[1], false);
+      report.rz = ppmToAxis(ppmArray[2], true);
+      report.x  = ppmToAxis(ppmArray[4], false);
+      report.y  = ppmToAxis(ppmArray[3], true);
 
-    inputGamepad->setValue((uint8_t*)&report, sizeof(report));
-    inputGamepad->notify();
+      // Mapeamento dos botões (Bits 0 a 7)
+      uint8_t btnState = 0;
+      if (ppmToButton(ppmArray[5]))    btnState |= (1 << 0); // Botão 1
+      if (ppmToButton(ppmArray[6]))    btnState |= (1 << 1); // Botão 2
+      if (ppmToButtonMid(ppmArray[7])) btnState |= (1 << 2); // Botão 3
+      if (ppmToButtonHi(ppmArray[7]))  btnState |= (1 << 3); // Botão 4
+      if (ppmToButton(ppmArray[8]))    btnState |= (1 << 4); // Botão 5
+
+      report.buttons = btnState;
+
+      inputGamepad->setValue((uint8_t*)&report, sizeof(report));
+      inputGamepad->notify();
 
 #ifdef SERIAL_DEBUG
-    Serial.printf("X=%d\tY=%d\tZ=%d\tRZ=%d\tBTN=0x%02X\n", report.x, report.y, report.z, report.rz, report.buttons);
+      Serial.printf("X=%d\tY=%d\tZ=%d\tRZ=%d\tBTN=0x%02X\n", report.x, report.y, report.z, report.rz, report.buttons);
 #endif
-    delay(10);
-  }
-  else
-  {
-    if (millis() - lastConnectionCheck > SHUTDOWN_TIMEOUT) {
-#ifdef SERIAL_DEBUG
-      Serial.println("Inatividade detectada. Entrando em Deep Sleep...");
-      delay(100);
-#endif      
-      // Entra em Deep Sleep. 
-      esp_deep_sleep_start();
+    }
+    else
+    {
+      if (millis() - lastConnectionCheck > SHUTDOWN_TIMEOUT) {
+  #ifdef SERIAL_DEBUG
+        Serial.println("Inatividade detectada. Entrando em Deep Sleep...");
+        delay(100);
+  #endif
+        // Entra em Deep Sleep. 
+        esp_deep_sleep_start();
+      }
     }
   }
 }
